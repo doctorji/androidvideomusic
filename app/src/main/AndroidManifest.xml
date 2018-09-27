@@ -20,7 +20,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".imageshow.ImageShowActivity" />
-        <activity android:name=".audio.AudioRecordActivity"></activity>
+        <activity android:name=".audio.AudioRecordActivity" />
     </application>
 
 </manifest>

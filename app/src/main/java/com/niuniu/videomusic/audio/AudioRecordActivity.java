@@ -1,8 +1,11 @@
 package com.niuniu.videomusic.audio;
 
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -13,10 +16,17 @@ import android.widget.Button;
 import com.niuniu.videomusic.R;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+
+import static com.niuniu.videomusic.audio.GlobalConfig.AUDIO_FORMAT;
+import static com.niuniu.videomusic.audio.GlobalConfig.CHANNEL_CONFIG;
+import static com.niuniu.videomusic.audio.GlobalConfig.SAMPLE_RATE_INHZ;
 
 /**
  * 实现Android录音的流程为：
@@ -48,6 +58,12 @@ public class AudioRecordActivity extends AppCompatActivity implements View.OnCli
     private Thread mThread;
     private DataOutputStream mDataOutputStream;
 
+
+    private static final String TAG = "jqd";
+    private AudioTrack audioTrack;
+    private byte[] audioData;
+    private FileInputStream fileInputStream;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,8 +82,14 @@ public class AudioRecordActivity extends AppCompatActivity implements View.OnCli
     private void initUI() {
         Button mStart = (Button) findViewById(R.id.bt_start);
         Button mStop = (Button) findViewById(R.id.bt_stop);
+        Button mCert = (Button) findViewById(R.id.bt_cert);
+        Button mPlay = (Button) findViewById(R.id.bt_play);
+        Button mStopPlay = (Button) findViewById(R.id.bt_stop_play);
         mStart.setOnClickListener(this);
         mStop.setOnClickListener(this);
+        mCert.setOnClickListener(this);
+        mPlay.setOnClickListener(this);
+        mStopPlay.setOnClickListener(this);
 
     }
 
@@ -80,12 +102,23 @@ public class AudioRecordActivity extends AppCompatActivity implements View.OnCli
             case R.id.bt_stop:
                 stopRecord();
                 break;
+            case R.id.bt_cert:
+                //转换音频
+                break;
+            case R.id.bt_play:
+                //播放音频
+                playInModeStream();
+                break;
+            case R.id.bt_stop_play:
+                //停止播放
+                stopPlay();
+                break;
         }
     }
 
     //开始录音
     public void startRecord() {
-         //AudioRecord.getMinBufferSize的参数是否支持当前的硬件设备
+        //AudioRecord.getMinBufferSize的参数是否支持当前的硬件设备
         if (AudioRecord.ERROR_BAD_VALUE == mBufferSizeInBytes || AudioRecord.ERROR == mBufferSizeInBytes) {
             throw new RuntimeException("Unable to getMinBufferSize");
         } else {
@@ -153,7 +186,8 @@ public class AudioRecordActivity extends AppCompatActivity implements View.OnCli
         try {
             //获取到文件的数据流
             mDataOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(mRecordingFile)));
-            byte[] buffer = new byte[mBufferSizeInBytes]; //判断AudioRecord未初始化，停止录音的时候释放了，状态就为STATE_UNINITIALIZED
+            byte[] buffer = new byte[mBufferSizeInBytes];
+            //判断AudioRecord未初始化，停止录音的时候释放了，状态就为STATE_UNINITIALIZED
             if (mAudioRecord.getState() == mAudioRecord.STATE_UNINITIALIZED) {
                 initData();
             }
@@ -179,4 +213,108 @@ public class AudioRecordActivity extends AppCompatActivity implements View.OnCli
         stopRecord();
     }
 
+    /**
+     * 播放，使用stream模式
+     */
+    private void playInModeStream() {
+        /*
+        * SAMPLE_RATE_INHZ 对应pcm音频的采样率
+        * channelConfig 对应pcm音频的声道
+        * AUDIO_FORMAT 对应pcm音频的格式
+        * */
+        int channelConfig = AudioFormat.CHANNEL_OUT_MONO;//声道数
+        final int minBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE_INHZ, channelConfig, AUDIO_FORMAT);//获取缓存的大小
+        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE_INHZ, channelConfig, AUDIO_FORMAT, minBufferSize,
+                AudioTrack.MODE_STREAM);
+        audioTrack.play();
+        File file = new File(mFileRoot, mFileName);
+        try {
+            fileInputStream = new FileInputStream(file);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        byte[] tempBuffer = new byte[minBufferSize];
+                        while (fileInputStream.available() > 0) {
+                            int readCount = fileInputStream.read(tempBuffer);
+                            if (readCount == AudioTrack.ERROR_INVALID_OPERATION ||
+                                    readCount == AudioTrack.ERROR_BAD_VALUE) {
+                                continue;
+                            }
+                            if (readCount != 0 && readCount != -1) {
+                                audioTrack.write(tempBuffer, 0, readCount);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 播放，使用static模式
+     */
+    private void playInModeStatic() {
+        // static模式，需要将音频数据一次性write到AudioTrack的内部缓冲区
+
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                File file = new File(mFileRoot, mFileName);
+                try {
+                    InputStream in = new FileInputStream(file);
+                    try {
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        for (int b; (b = in.read()) != -1; ) {
+                            out.write(b);
+                        }
+                        Log.d(TAG, "Got the data");
+                        audioData = out.toByteArray();
+                    } finally {
+                        in.close();
+                    }
+                } catch (IOException e) {
+                    Log.wtf(TAG, "Failed to read", e);
+                }
+                return null;
+            }
+
+
+            @Override
+            protected void onPostExecute(Void v) {
+                Log.i(TAG, "Creating track...audioData.length = " + audioData.length);
+
+                // R.raw.ding铃声文件的相关属性为 22050Hz, 8-bit, Mono
+                audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, SAMPLE_RATE_INHZ, CHANNEL_CONFIG, AUDIO_FORMAT, audioData.length,
+                        AudioTrack.MODE_STATIC);
+                Log.d(TAG, "Writing audio data...");
+                audioTrack.write(audioData, 0, audioData.length);
+                Log.d(TAG, "Starting playback");
+                audioTrack.play();
+                Log.d(TAG, "Playing");
+            }
+
+        }.execute();
+
+    }
+
+
+    /**
+     * 停止播放
+     */
+    private void stopPlay() {
+        if (audioTrack != null) {
+            Log.d(TAG, "Stopping");
+            audioTrack.stop();
+            Log.d(TAG, "Releasing");
+            audioTrack.release();
+            Log.d(TAG, "Nulling");
+        }
+    }
 }

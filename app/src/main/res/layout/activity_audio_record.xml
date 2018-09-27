@@ -17,4 +17,23 @@
         android:layout_marginTop="30dp"
         android:text="结束录音"/>
 
+    <Button
+        android:id="@+id/bt_cert"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="转换音频"/>
+    <Button
+        android:id="@+id/bt_play"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="播放录音"/>
+    <Button
+        android:id="@+id/bt_stop_play"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="停止播放"/>
+
 </LinearLayout>
