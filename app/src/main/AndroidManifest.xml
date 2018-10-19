@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" />
 
     <application
         android:allowBackup="true"
@@ -21,6 +24,8 @@
         </activity>
         <activity android:name=".imageshow.ImageShowActivity" />
         <activity android:name=".audio.AudioRecordActivity" />
+        <activity android:name=".camera.CameraPlayActivity" />
+        <activity android:name=".camera.Camera2Activity"></activity>
     </application>
 
 </manifest>

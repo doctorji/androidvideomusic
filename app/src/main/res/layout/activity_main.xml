@@ -23,6 +23,12 @@
         android:id="@+id/bt_im"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="图片生成" />
+        android:text="camera" />
+
+    <Button
+        android:id="@+id/bt_im2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="camera2" />
 
 </LinearLayout>

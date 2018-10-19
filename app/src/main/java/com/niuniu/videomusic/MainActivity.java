@@ -6,6 +6,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.niuniu.videomusic.audio.AudioRecordActivity;
+import com.niuniu.videomusic.camera.Camera2Activity;
+import com.niuniu.videomusic.camera.CameraPlayActivity;
 import com.niuniu.videomusic.imageshow.ImageShowActivity;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
@@ -17,6 +19,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.bt_image).setOnClickListener(this);
         findViewById(R.id.bt_audio).setOnClickListener(this);
         findViewById(R.id.bt_im).setOnClickListener(this);
+        findViewById(R.id.bt_im2).setOnClickListener(this);
     }
 
     @Override
@@ -28,7 +31,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.bt_audio:
                 startActivity(new Intent(this, AudioRecordActivity.class));
                 break;
-
+            case R.id.bt_im:
+                startActivity(new Intent(this, CameraPlayActivity.class));
+                break;
+            case R.id.bt_im2:
+                startActivity(new Intent(this, Camera2Activity.class));
+                break;
         }
     }
 }
