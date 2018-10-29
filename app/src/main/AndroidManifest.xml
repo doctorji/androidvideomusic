@@ -25,7 +25,7 @@
         <activity android:name=".imageshow.ImageShowActivity" />
         <activity android:name=".audio.AudioRecordActivity" />
         <activity android:name=".camera.CameraPlayActivity" />
-        <activity android:name=".camera.Camera2Activity"></activity>
+        <activity android:name=".camera.Camera2Activity" />
     </application>
 
 </manifest>

@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -43,6 +44,19 @@ public class CameraPlayActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     mPreview.switchCamera();
+                }
+            });
+            final Button mSta = (Button) findViewById(R.id.button_flash);
+            mSta.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mSta.getText().equals("开始")) {
+                        mSta.setText("结束");
+                        mPreview.startVideo();
+                    }else if(mSta.getText().equals("结束")){
+                        mSta.setText("开始");
+                        mPreview.stopVideo();
+                    }
                 }
             });
             preview.addView(mPreview);

@@ -22,8 +22,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.WindowManager;
 import android.widget.FrameLayout;
+
+import com.niuniu.videomusic.camera.encoder.MediaMuxerThread;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +39,7 @@ import static android.graphics.Bitmap.createBitmap;
  * Created by Administrator on 2018/10/9 0009.
  */
 
-public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, SensorEventListener {
+public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback, SensorEventListener, Camera.PreviewCallback {
     private Context cxt;
     private FoucsView mFoucsView;
     private SurfaceHolder mHolder;
@@ -55,6 +56,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private SensorManager sm;
     private double angle; //照片需要旋转的角度
     private int nowAngle;//照片的角度
+    private boolean isRecording = false;
 
     public CameraPreview(Context context, float screenProp, FoucsView foucsView) {
         super(context);
@@ -84,6 +86,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         // empty. Take care of releasing the Camera preview in your activity.
+        stopVideo();
         doDestroyCamera();
     }
 
@@ -115,7 +118,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             } else {
                 setLayoutParams(new FrameLayout.LayoutParams(width, (int) (width * (w / h))));
             }
-            parameters.setPreviewSize(s.width, s.height); // 设置预览图像大小
+            parameters.setPreviewSize(width, height); // 设置预览图像大小
         } else {
             openCamera(SELECTED_CAMERA);
             mCamera.setDisplayOrientation(cameraAngle);//浏览角度
@@ -300,10 +303,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             try {
                 Camera.Parameters mParams = mCamera.getParameters();
                 Camera.Size pictureSize = Camera1Util.getPictureSize(mParams
-                        .getSupportedPictureSizes(), 1200, screenProp);
+                        .getSupportedPictureSizes(), 1500, screenProp);
 
                 mParams.setPictureSize(pictureSize.width, pictureSize.height);
-
                 if (Camera1Util.isSupportedFocusMode(
                         mParams.getSupportedFocusModes(),
                         Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
@@ -314,10 +316,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                     mParams.setPictureFormat(ImageFormat.JPEG);
                     mParams.setJpegQuality(100);
                 }
+                mParams.setPreviewFormat(ImageFormat.NV21);
                 mCamera.setParameters(mParams);
                 mCamera.setPreviewDisplay(mHolder);  //SurfaceView
                 mCamera.setDisplayOrientation(cameraAngle);//浏览角度
-                // mCamera.setPreviewCallback(this); //每一帧回调
+                mCamera.setPreviewCallback(this); //每一帧回调
                 mCamera.startPreview();//启动浏览
                 mCamera.cancelAutoFocus();
                 isPreviewing = true;
@@ -333,7 +336,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         if (!canFocus) {
             return false;
         }
-        canFocus=false;
+        canFocus = false;
         if (event.getPointerCount() == 1) {
             handleFocusMetering(event, mCamera);
             handlerFoucs(event.getX(), event.getY());
@@ -519,5 +522,21 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
+    }
+
+    @Override
+    public void onPreviewFrame(byte[] bytes, Camera camera) {
+        MediaMuxerThread.addVideoFrameData(bytes);
+    }
+
+    /**
+     * 开始录像
+     */
+    public void startVideo() {
+        MediaMuxerThread.startMuxer();
+    }
+
+    public void stopVideo() {
+        MediaMuxerThread.stopMuxer();
     }
 }
